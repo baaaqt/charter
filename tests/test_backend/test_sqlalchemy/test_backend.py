@@ -4,7 +4,7 @@ from sqlalchemy.dialects import mysql, oracle, postgresql, sqlite
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from charter._backends.sqlalchemy import SQLAlchemyBackend
-from charter._ops import ContainsData
+from charter._ops import ContainsData, Operator, Operators
 
 DIALECT_MAPPING = {
     "postgresql": postgresql.dialect(),
@@ -104,13 +104,9 @@ class TestSQLAlchemyBackend:
         dialect: str,
         expected: str,
     ) -> None:
-        backend = SQLAlchemyBackend(
-            User, use_lower_like=True
-        )
+        backend = SQLAlchemyBackend(User, use_lower_like=True)
         contains_data = ContainsData(value="TEST", ignore_case=True)
-        result = backend._transform_contains(
-            backend._get_column("name"), contains_data
-        )
+        result = backend._transform_contains(backend._get_column("name"), contains_data)
         compiled = str(
             result.compile(
                 dialect=DIALECT_MAPPING[dialect],
@@ -133,17 +129,84 @@ class TestSQLAlchemyBackend:
         dialect: str,
         expected: str,
     ) -> None:
-        backend = SQLAlchemyBackend(
-            User, use_lower_like=False
-        )
+        backend = SQLAlchemyBackend(User, use_lower_like=False)
         contains_data = ContainsData(value="TEST", ignore_case=True)
-        result = backend._transform_contains(
-            backend._get_column("name"), contains_data
-        )
+        result = backend._transform_contains(backend._get_column("name"), contains_data)
         compiled = str(
             result.compile(
                 dialect=DIALECT_MAPPING[dialect],
                 compile_kwargs={"literal_binds": True},
             )
         ).lower()
+        assert compiled == expected
+
+    @pytest.mark.parametrize(
+        "operator, expected",
+        [
+            (
+                Operator(field="name", operator=Operators.EQ, value="test"),
+                "users.name = 'test'",
+            ),
+            (
+                Operator(field="name", operator=Operators.EQ, value=None),
+                "users.name IS NULL",
+            ),
+            (
+                Operator(field="name", operator=Operators.EQ, value=True),
+                "users.name IS true",
+            ),
+            (
+                Operator(field="name", operator=Operators.EQ, value=False),
+                "users.name IS false",
+            ),
+            (
+                Operator(field="age", operator=Operators.IN, value=[20, 30]),
+                "users.age IN (20, 30)",
+            ),
+            (
+                Operator(field="age", operator=Operators.GT, value=25),
+                "users.age > 25",
+            ),
+            (
+                Operator(field="age", operator=Operators.GTE, value=30),
+                "users.age >= 30",
+            ),
+            (
+                Operator(field="age", operator=Operators.LT, value=40),
+                "users.age < 40",
+            ),
+            (
+                Operator(field="age", operator=Operators.LTE, value=50),
+                "users.age <= 50",
+            ),
+            (
+                Operator(
+                    field="name",
+                    operator=Operators.CONTAINS,
+                    value=ContainsData(value="test", ignore_case=False),
+                ),
+                "users.name LIKE '%%test%%'",
+            ),
+            (
+                Operator(
+                    field="name",
+                    operator=Operators.REGEX,
+                    value=r"^test.*",
+                ),
+                "users.name REGEXP '^test.*'",
+            ),
+        ],
+    )
+    def test__test_transform_operator(
+        self,
+        operator: Operator,
+        expected: str,
+    ) -> None:
+        result = self.backend._transform_operator(operator)
+        compiled = str(
+            result.compile(
+                dialect=postgresql.dialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
         assert compiled == expected
