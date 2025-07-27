@@ -53,7 +53,7 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
                 p.lower()
             )
         else:
-            self.generate_contains_ignore_case = lambda c, p: c.like(p.lower())
+            self.generate_contains_ignore_case = lambda c, p: c.ilike(p.lower())
 
     def transform(self, operations: Sequence[Operation]) -> ColumnElement[bool]:
         if not operations:
@@ -129,7 +129,7 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
         pattern = f"%{contains_data.value}%"
 
         if contains_data.ignore_case:
-            return self.generate_contains_ignore_case(func.lower(column), pattern)
+            return self.generate_contains_ignore_case(column, pattern)
         return column.like(pattern)
 
     def _transform_regex(
