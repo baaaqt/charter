@@ -197,7 +197,7 @@ class TestSQLAlchemyBackend:
             ),
         ],
     )
-    def test__test_transform_operator(
+    def test__transform_operator(
         self,
         operator: Operator,
         expected: str,
