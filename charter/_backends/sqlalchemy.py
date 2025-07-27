@@ -1,5 +1,4 @@
 from collections.abc import Callable, Sequence
-from io import UnsupportedOperation
 from typing import Any, cast
 
 import sqlalchemy as sa
@@ -116,7 +115,7 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
             case Operators.REGEX:
                 return self._transform_regex(column, op.value)
             case _:
-                raise UnsupportedOperation(f"Unsupported operator: {op.operator}")
+                raise UnsupportedOperationError(f"Unsupported operator: {op.operator}")
 
     def _transform_contains(
         self,
