@@ -12,6 +12,7 @@ from charter._ops import (
     Operators,
 )
 
+DEFAULT_DIALECT = postgresql.dialect()
 DIALECT_MAPPING = {
     "postgresql": postgresql.dialect(),
     "mysql": mysql.dialect(),
@@ -42,7 +43,7 @@ class TestSQLAlchemyBackend:
         assert (
             str(
                 filters.compile(
-                    dialect=postgresql.dialect(),
+                    dialect=DEFAULT_DIALECT,
                     compile_kwargs={"literal_binds": True},
                 )
             )
@@ -220,7 +221,7 @@ class TestSQLAlchemyBackend:
         result = self.backend._transform_operator(operator)
         compiled = str(
             result.compile(
-                dialect=postgresql.dialect(),
+                dialect=DEFAULT_DIALECT,
                 compile_kwargs={"literal_binds": True},
             )
         )
@@ -294,7 +295,7 @@ class TestSQLAlchemyBackend:
         result = self.backend._transform_logic_operator(operator)
         compiled = str(
             result.compile(
-                dialect=postgresql.dialect(),
+                dialect=DEFAULT_DIALECT,
                 compile_kwargs={"literal_binds": True},
             )
         )
