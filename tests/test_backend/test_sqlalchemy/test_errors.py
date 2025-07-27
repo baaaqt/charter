@@ -57,6 +57,19 @@ class TestSQLAlchemyBackendErrors:
                 )
             )
 
+    def test__transform_operator_invalid_operator(self) -> None:
+        with pytest.raises(
+            UnsupportedOperationError,
+            match="Unsupported operator: invalid",
+        ):
+            self.backend._transform_operator(
+                Operator(
+                    operator="invalid",  # type: ignore[arg-type]
+                    field="name",
+                    value="test",
+                )
+            )
+
     def test__get_column_with_non_existing_column(self) -> None:
         with pytest.raises(
             AttributeError,
