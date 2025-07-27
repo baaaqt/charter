@@ -57,10 +57,11 @@ class TestSQLAlchemyBackendErrors:
                 )
             )
 
-    def test__transform_operation_with_invalid_field(self) -> None:
+    def test__get_column_with_non_existing_column(self) -> None:
         with pytest.raises(
-            ValueError,
-            match="Field 'invalid_field' not found in entity",
+            AttributeError,
+            match=f"Object of type {self.User.__class__}"
+            " has no attribute 'invalid_field'",
         ):
             self.backend.transform(
                 [
