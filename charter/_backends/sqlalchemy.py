@@ -141,9 +141,11 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
 
     def _get_column(self, field_name: str) -> Column[Any]:
         """Get column attribute from entity."""
-        try:
-            return self.entity.__mapper__.columns[field_name]
-        except KeyError as e:
-            raise ValueError(
-                f"Field '{field_name}' not found in entity {self.entity.__name__}"
-            ) from e
+        column = self.entity.__mapper__.columns.get(field_name)
+
+        if column is None:
+            raise AttributeError(
+                f"Object of type {self.entity.__class__}"
+                f" has no attribute '{field_name}'"
+            )
+        return column
