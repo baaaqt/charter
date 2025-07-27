@@ -4,7 +4,13 @@ from sqlalchemy.dialects import mysql, oracle, postgresql, sqlite
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from charter._backends.sqlalchemy import SQLAlchemyBackend
-from charter._ops import ContainsData, Operator, Operators
+from charter._ops import (
+    ContainsData,
+    LogicOperator,
+    LogicOperators,
+    Operator,
+    Operators,
+)
 
 DIALECT_MAPPING = {
     "postgresql": postgresql.dialect(),
@@ -203,6 +209,80 @@ class TestSQLAlchemyBackend:
         expected: str,
     ) -> None:
         result = self.backend._transform_operator(operator)
+        compiled = str(
+            result.compile(
+                dialect=postgresql.dialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+        assert compiled == expected
+
+    @pytest.mark.parametrize(
+        "operator, expected",
+        [
+            [
+                LogicOperator(
+                    operator=LogicOperators.AND,
+                    operations=[
+                        Operator(field="name", operator=Operators.EQ, value="test"),
+                        Operator(field="age", operator=Operators.GT, value=20),
+                    ],
+                ),
+                "users.name = 'test' AND users.age > 20",
+            ],
+            [
+                LogicOperator(
+                    operator=LogicOperators.OR,
+                    operations=[
+                        Operator(field="name", operator=Operators.EQ, value="test"),
+                        Operator(field="age", operator=Operators.GT, value=20),
+                    ],
+                ),
+                "users.name = 'test' OR users.age > 20",
+            ],
+            [
+                LogicOperator(
+                    operator=LogicOperators.NOT,
+                    operations=[
+                        Operator(field="name", operator=Operators.EQ, value="test"),
+                    ],
+                ),
+                "users.name != 'test'",
+            ],
+            [
+                LogicOperator(
+                    operator=LogicOperators.NOT,
+                    operations=[
+                        Operator(field="name", operator=Operators.IN, value=["name"]),
+                    ],
+                ),
+                "(users.name NOT IN ('name'))",
+            ],
+            [
+                LogicOperator(
+                    operator=LogicOperators.NOT,
+                    operations=[
+                        Operator(field="name", operator=Operators.EQ, value="test"),
+                        LogicOperator(
+                            operator=LogicOperators.OR,
+                            operations=[
+                                Operator(field="age", operator=Operators.GT, value=20),
+                                Operator(
+                                    field="role", operator=Operators.EQ, value="admin"
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+                "NOT (users.name = 'test' AND"
+                " (users.age > 20 OR users.role = 'admin'))",
+            ],
+        ],
+    )
+    def test__transform_logic_operator(
+        self, operator: LogicOperator, expected: str
+    ) -> None:
+        result = self.backend._transform_logic_operator(operator)
         compiled = str(
             result.compile(
                 dialect=postgresql.dialect(),
