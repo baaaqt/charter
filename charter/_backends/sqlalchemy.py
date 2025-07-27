@@ -49,9 +49,11 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
         self.entity = entity
 
         if use_lower_like:
-            self.generate_contains_ignore_case = lambda c, p: func.lower(c).like(p)
+            self.generate_contains_ignore_case = lambda c, p: func.lower(c).like(
+                p.lower()
+            )
         else:
-            self.generate_contains_ignore_case = lambda c, p: c.like(p)
+            self.generate_contains_ignore_case = lambda c, p: c.like(p.lower())
 
     def transform(self, operations: Sequence[Operation]) -> ColumnElement[bool]:
         if not operations:
