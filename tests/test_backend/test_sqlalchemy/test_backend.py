@@ -4,6 +4,7 @@ from sqlalchemy.dialects import mysql, oracle, postgresql, sqlite
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from charter._backends.sqlalchemy import SQLAlchemyBackend
+from charter._ops import ContainsData
 
 DIALECT_MAPPING = {
     "postgresql": postgresql.dialect(),
@@ -62,3 +63,87 @@ class TestSQLAlchemyBackend:
             )
         )
         assert compiled == "users.name REGEXP '^test.*'"
+
+    @pytest.mark.parametrize(
+        "dialect, expected",
+        [
+            ["postgresql", "users.name LIKE '%%test%%'"],
+            ["mysql", "users.name LIKE '%%test%%'"],
+            ["oracle", "users.name LIKE '%test%'"],
+            ["sqlite", "users.name LIKE '%test%'"],
+        ],
+    )
+    def test__transform_contains_case_sensitive(
+        self,
+        dialect: str,
+        expected: str,
+    ) -> None:
+        contains_data = ContainsData(value="test", ignore_case=False)
+        result = self.backend._transform_contains(
+            self.backend._get_column("name"), contains_data
+        )
+        compiled = str(
+            result.compile(
+                dialect=DIALECT_MAPPING[dialect],
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+        assert compiled == expected
+
+    @pytest.mark.parametrize(
+        "dialect, expected",
+        [
+            ["postgresql", "lower(users.name) like '%%test%%'"],
+            ["mysql", "lower(users.name) like '%%test%%'"],
+            ["oracle", "lower(users.name) like '%test%'"],
+            ["sqlite", "lower(users.name) like '%test%'"],
+        ],
+    )
+    def test__transform_contains_case_insensitive_with_lower_like(
+        self,
+        dialect: str,
+        expected: str,
+    ) -> None:
+        backend = SQLAlchemyBackend(
+            User, use_lower_like=True
+        )
+        contains_data = ContainsData(value="TEST", ignore_case=True)
+        result = backend._transform_contains(
+            backend._get_column("name"), contains_data
+        )
+        compiled = str(
+            result.compile(
+                dialect=DIALECT_MAPPING[dialect],
+                compile_kwargs={"literal_binds": True},
+            )
+        ).lower()
+        assert compiled == expected
+
+    @pytest.mark.parametrize(
+        "dialect, expected",
+        [
+            ["postgresql", "users.name ilike '%%test%%'"],
+            ["mysql", "lower(users.name) like lower('%%test%%')"],
+            ["oracle", "lower(users.name) like lower('%test%')"],
+            ["sqlite", "lower(users.name) like lower('%test%')"],
+        ],
+    )
+    def test__transform_contains_case_insensitive_with_ilike(
+        self,
+        dialect: str,
+        expected: str,
+    ) -> None:
+        backend = SQLAlchemyBackend(
+            User, use_lower_like=False
+        )
+        contains_data = ContainsData(value="TEST", ignore_case=True)
+        result = backend._transform_contains(
+            backend._get_column("name"), contains_data
+        )
+        compiled = str(
+            result.compile(
+                dialect=DIALECT_MAPPING[dialect],
+                compile_kwargs={"literal_binds": True},
+            )
+        ).lower()
+        assert compiled == expected
