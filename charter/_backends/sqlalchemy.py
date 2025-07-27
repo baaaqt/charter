@@ -86,7 +86,7 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
             case LogicOperators.OR:
                 return sa.or_(*self.transform(op.operations))
             case LogicOperators.NOT:
-                return ~self.transform(op.operations)[0]
+                return ~self.transform(op.operations)
             case _:
                 raise UnsupportedOperationError(
                     f"Unsupported logic operator: {op.operator}"
