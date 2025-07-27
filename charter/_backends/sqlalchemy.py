@@ -53,7 +53,7 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
 
     def transform(self, operations: Sequence[Operation]) -> ColumnElement[bool]:
         if not operations:
-            return sa.literal_column("true")
+            return sa.true()
 
         criteria: list[ColumnElement[bool]] = []
 
