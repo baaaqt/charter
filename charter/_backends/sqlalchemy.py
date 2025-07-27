@@ -26,7 +26,9 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
     """
 
     entity: type[DeclarativeBase]
-    generate_contains: Callable[[ColumnElement[Any], str], ColumnElement[bool]]
+    generate_contains_ignore_case: Callable[
+        [ColumnElement[Any], str], ColumnElement[bool]
+    ]
 
     def __init__(
         self,
@@ -47,9 +49,9 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
         self.entity = entity
 
         if use_lower_like:
-            self.generate_contains = lambda c, p: func.lower(c).like(p)
+            self.generate_contains_ignore_case = lambda c, p: func.lower(c).like(p)
         else:
-            self.generate_contains = lambda c, p: c.like(p)
+            self.generate_contains_ignore_case = lambda c, p: c.like(p)
 
     def transform(self, operations: Sequence[Operation]) -> ColumnElement[bool]:
         if not operations:
@@ -125,7 +127,7 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
         pattern = f"%{contains_data.value}%"
 
         if contains_data.ignore_case:
-            return self.generate_contains(func.lower(column), pattern)
+            return self.generate_contains_ignore_case(func.lower(column), pattern)
         return column.like(pattern)
 
     def _transform_regex(
