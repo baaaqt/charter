@@ -39,6 +39,15 @@ class TestSQLAlchemyBackend:
     def test_transform_empty_operations(self) -> None:
         filters = self.backend.transform([])
         assert filters is sa.true()
+        assert (
+            str(
+                filters.compile(
+                    dialect=postgresql.dialect(),
+                    compile_kwargs={"literal_binds": True},
+                )
+            )
+            == "true"
+        )
 
     @pytest.mark.parametrize(
         "field_name",
