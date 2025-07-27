@@ -37,18 +37,18 @@ class TestSQLAlchemyBackend:
     def setup_method(self) -> None:
         self.backend = SQLAlchemyBackend(User)
 
+    def compile_sa_stmt(self, stmt: sa.ColumnElement[bool]) -> str:
+        return str(
+            stmt.compile(
+                dialect=DEFAULT_DIALECT,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
     def test_transform_empty_operations(self) -> None:
         filters = self.backend.transform([])
         assert filters is sa.true()
-        assert (
-            str(
-                filters.compile(
-                    dialect=DEFAULT_DIALECT,
-                    compile_kwargs={"literal_binds": True},
-                )
-            )
-            == "true"
-        )
+        assert self.compile_sa_stmt(filters) == "true"
 
     @pytest.mark.parametrize(
         "field_name",
@@ -219,12 +219,7 @@ class TestSQLAlchemyBackend:
         expected: str,
     ) -> None:
         result = self.backend._transform_operator(operator)
-        compiled = str(
-            result.compile(
-                dialect=DEFAULT_DIALECT,
-                compile_kwargs={"literal_binds": True},
-            )
-        )
+        compiled = self.compile_sa_stmt(result)
         assert compiled == expected
 
     @pytest.mark.parametrize(
@@ -293,10 +288,5 @@ class TestSQLAlchemyBackend:
         self, operator: LogicOperator, expected: str
     ) -> None:
         result = self.backend._transform_logic_operator(operator)
-        compiled = str(
-            result.compile(
-                dialect=DEFAULT_DIALECT,
-                compile_kwargs={"literal_binds": True},
-            )
-        )
+        compiled = self.compile_sa_stmt(result)
         assert compiled == expected
