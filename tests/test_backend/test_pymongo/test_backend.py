@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 
 from charter._backends.pymongo import PymongoBackend
+from charter._exc import UnsupportedOperationError
 from charter._ops import ContainsData, Operator, Operators
 
 
@@ -50,6 +51,10 @@ class TestPymongoBackend:
                 ),
                 {"name": {"$regex": "test", "$options": "i"}},
             ),
+            (
+                Operator(Operators.REGEX, "name", r"^test.*"),
+                {"name": {"$regex": r"^test.*"}},
+            ),
         ],
     )
     def test__transform_operator(
@@ -59,3 +64,16 @@ class TestPymongoBackend:
     ) -> None:
         transformed = self.backend._transform_operator(operator)
         assert transformed == expected
+
+    def test__transform_operator_invalid_operator(self) -> None:
+        with pytest.raises(
+            UnsupportedOperationError,
+            match="Unsupported operator: unsupported_operator",
+        ):
+            self.backend._transform_operator(
+                Operator(
+                    operator="unsupported_operator",  # type: ignore[arg-type]
+                    field="name",
+                    value="value",
+                )
+            )
