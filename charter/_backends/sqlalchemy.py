@@ -104,6 +104,15 @@ class SQLAlchemyBackend(Backend[ColumnElement[bool]]):
                     case _:
                         return column == op.value  # type: ignore[no-any-return]
 
+            case Operators.NEQ:
+                match op.value:
+                    case None:
+                        return column.isnot(None)
+                    case bool():
+                        return column.isnot(op.value)
+                    case _:
+                        return column != op.value  # type: ignore[no-any-return]
+
             case Operators.IN:
                 return column.in_(op.value)
             case Operators.GT:
