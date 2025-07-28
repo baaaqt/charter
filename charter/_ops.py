@@ -14,6 +14,7 @@ class OperationType(Enum):
 
 class Operators(StrEnum):
     EQ = "eq"
+    NEQ = "neq"
     IN = "in"
     GT = "gt"
     GTE = "gte"
