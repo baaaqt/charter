@@ -1,11 +1,19 @@
 from typing import Any
+from unittest.mock import Mock
 
 import pytest
 from bson import ObjectId
 
 from charter._backends.pymongo import PymongoBackend
 from charter._exc import UnsupportedOperationError
-from charter._ops import ContainsData, Operator, Operators
+from charter._ops import (
+    ContainsData,
+    LogicOperator,
+    LogicOperators,
+    Operation,
+    Operator,
+    Operators,
+)
 
 
 class TestPymongoBackend:
@@ -92,3 +100,154 @@ class TestPymongoBackend:
         transformed = backend._transform_operator(operator)
         assert isinstance(transformed["_id"]["$in"][0], ObjectId)
         assert transformed["_id"]["$in"][0] == ObjectId("6887106233516d43a9c29753")
+
+    @pytest.mark.parametrize(
+        "operator, expected",
+        [
+            (
+                LogicOperator(
+                    operator=LogicOperators.AND,
+                    operations=[
+                        Operator(Operators.EQ, "name", "test"),
+                        Operator(Operators.GT, "age", 20),
+                    ],
+                ),
+                {"$and": [{"name": "test"}, {"age": {"$gt": 20}}]},
+            ),
+            (
+                LogicOperator(
+                    operator=LogicOperators.OR,
+                    operations=[
+                        Operator(Operators.EQ, "name", "test"),
+                        Operator(Operators.LT, "age", 30),
+                    ],
+                ),
+                {"$or": [{"name": "test"}, {"age": {"$lt": 30}}]},
+            ),
+            (
+                LogicOperator(
+                    operator=LogicOperators.NOT,
+                    operations=[Operator(Operators.EQ, "name", "test")],
+                ),
+                {"$not": [{"name": "test"}]},
+            ),
+        ],
+    )
+    def test__transform_logic_operator(
+        self,
+        operator: LogicOperator,
+        expected: dict[str, Any],
+    ) -> None:
+        transformed = self.backend._transform_logic_operator(operator)
+        assert transformed == expected
+
+    def test__transform_logic_operator_invalid_operator(self) -> None:
+        with pytest.raises(
+            UnsupportedOperationError,
+            match="Unsupported logic operator: unsupported_operator",
+        ):
+            self.backend._transform_logic_operator(
+                LogicOperator(
+                    operator="unsupported_operator",  # type: ignore[arg-type]
+                    operations=[
+                        Operator(Operators.EQ, "name", "test"),
+                    ],
+                )
+            )
+
+    def test_transform_unsupported_operation_type(self) -> None:
+        mock = Mock(spec=Operator)
+        mock.operation_type = "unsupported_operation"
+
+        with pytest.raises(
+            UnsupportedOperationError,
+            match="Unsupported operation type: unsupported_operation",
+        ):
+            self.backend.transform([mock])
+
+    @pytest.mark.parametrize(
+        "operations, expected",
+        [
+            (
+                [
+                    Operator(Operators.EQ, "name", "test"),
+                    LogicOperator(
+                        operator=LogicOperators.AND,
+                        operations=[
+                            Operator(Operators.GT, "age", 20),
+                            Operator(Operators.LT, "age", 30),
+                        ],
+                    ),
+                ],
+                [
+                    {"name": "test"},
+                    {"$and": [{"age": {"$gt": 20}}, {"age": {"$lt": 30}}]},
+                ],
+            ),
+            (
+                [
+                    LogicOperator(
+                        operator=LogicOperators.OR,
+                        operations=[
+                            Operator(Operators.EQ, "name", "test"),
+                            Operator(Operators.IN, "tags", ["tag1", "tag2"]),
+                        ],
+                    )
+                ],
+                [{"$or": [{"name": "test"}, {"tags": {"$in": ["tag1", "tag2"]}}]}],
+            ),
+            (
+                [
+                    LogicOperator(
+                        operator=LogicOperators.NOT,
+                        operations=[Operator(Operators.EQ, "name", "test")],
+                    ),
+                    LogicOperator(
+                        operator=LogicOperators.AND,
+                        operations=[
+                            Operator(Operators.GT, "age", 20),
+                            Operator(Operators.LT, "age", 30),
+                        ],
+                    ),
+                    LogicOperator(
+                        operator=LogicOperators.OR,
+                        operations=[
+                            Operator(Operators.EQ, "status", "active"),
+                            Operator(Operators.IN, "tags", ["tag1", "tag2"]),
+                            LogicOperator(
+                                operator=LogicOperators.NOT,
+                                operations=[Operator(Operators.EQ, "name", "test")],
+                            ),
+                            LogicOperator(
+                                operator=LogicOperators.AND,
+                                operations=[
+                                    Operator(Operators.GT, "age", 20),
+                                    Operator(Operators.LT, "age", 30),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+                [
+                    {"$not": [{"name": "test"}]},
+                    {"$and": [{"age": {"$gt": 20}}, {"age": {"$lt": 30}}]},
+                    {
+                        "$or": [
+                            {"status": "active"},
+                            {"tags": {"$in": ["tag1", "tag2"]}},
+                            {"$not": [{"name": "test"}]},
+                            {"$and": [{"age": {"$gt": 20}}, {"age": {"$lt": 30}}]},
+                        ]
+                    },
+                ]
+            ),
+        ],
+    )
+    def test_transform_edge_cases(
+        self,
+        operations: list[Operation],
+        expected: list[dict[str, Any]],
+    ) -> None:
+        result = self.backend.transform(operations)
+        assert result == expected
+        assert isinstance(result, list)
