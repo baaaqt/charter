@@ -168,6 +168,22 @@ class TestSQLAlchemyBackend:
                 "users.name IS NULL",
             ),
             (
+                Operator(field="name", operator=Operators.NEQ, value="test"),
+                "users.name != 'test'",
+            ),
+            (
+                Operator(field="name", operator=Operators.NEQ, value=None),
+                "users.name IS NOT NULL",
+            ),
+            (
+                Operator(field="name", operator=Operators.NEQ, value=True),
+                "users.name IS NOT true",
+            ),
+            (
+                Operator(field="name", operator=Operators.NEQ, value=False),
+                "users.name IS NOT false",
+            ),
+            (
                 Operator(field="name", operator=Operators.EQ, value=True),
                 "users.name IS true",
             ),
