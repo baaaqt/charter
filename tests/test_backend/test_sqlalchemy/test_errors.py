@@ -25,15 +25,12 @@ class TestSQLAlchemyBackendErrors:
     def setup_method(self) -> None:
         self.backend = SQLAlchemyBackend(TestSQLAlchemyBackendErrors.User)
 
-    def test_entity_not_declarative_base(
-        self,
-        backend: type[SQLAlchemyBackend],
-    ) -> None:
+    def test_entity_not_declarative_base(self) -> None:
         with pytest.raises(
             TypeError,
             match="Entity must be a subclass of DeclarativeBase",
         ):
-            backend(object)  # type: ignore[arg-type]
+            SQLAlchemyBackend(object)  # type: ignore[arg-type]
 
     def test_transform_invalid_operation_type(self) -> None:
         mock = Mock(spec=Operator)
