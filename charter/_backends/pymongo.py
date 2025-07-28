@@ -73,7 +73,7 @@ class PymongoBackend(Backend[list[dict[str, Any]]]):
                     field=field,
                     value=[ObjectId(v) for v in op.value],
                 )
-            elif isinstance(op.value, str):
+            else:
                 op = Operator(
                     operator=op.operator,
                     field=field,
