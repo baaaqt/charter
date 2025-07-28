@@ -102,11 +102,9 @@ class PymongoBackend(Backend[list[dict[str, Any]]]):
         field: str,
         contains_data: ContainsData,
     ) -> dict[str, Any]:
-        regex_pattern = f".*{contains_data.value}.*"
-
         if contains_data.ignore_case:
-            return {field: {"$regex": regex_pattern, "$options": "i"}}
-        return {field: {"$regex": regex_pattern}}
+            return {field: {"$regex": contains_data.value.lower(), "$options": "i"}}
+        return {field: {"$regex": contains_data.value}}
 
     def _get_field_name(self, field: str) -> str:
         if self.alias_id and field == "id":
