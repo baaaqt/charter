@@ -83,6 +83,8 @@ class PymongoBackend(Backend[list[dict[str, Any]]]):
         match op.operator:
             case Operators.EQ:
                 return {field: op.value}
+            case Operators.NEQ:
+                return {field: {"$ne": op.value}}
             case Operators.IN:
                 return {field: {"$in": op.value}}
             case Operators.GT:
