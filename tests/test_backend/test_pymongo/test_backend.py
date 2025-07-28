@@ -39,6 +39,7 @@ class TestPymongoBackend:
         "operator, expected",
         [
             (Operator(Operators.EQ, "name", "value"), {"name": "value"}),
+            (Operator(Operators.NEQ, "name", "value"), {"name": {"$ne": "value"}}),
             (Operator(Operators.IN, "name", ["value"]), {"name": {"$in": ["value"]}}),
             (Operator(Operators.GT, "age", 30), {"age": {"$gt": 30}}),
             (Operator(Operators.GTE, "age", 30), {"age": {"$gte": 30}}),
@@ -239,7 +240,7 @@ class TestPymongoBackend:
                             {"$and": [{"age": {"$gt": 20}}, {"age": {"$lt": 30}}]},
                         ]
                     },
-                ]
+                ],
             ),
         ],
     )
