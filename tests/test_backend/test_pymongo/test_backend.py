@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from bson import ObjectId
 
 from charter._backends.pymongo import PymongoBackend
 from charter._exc import UnsupportedOperationError
@@ -77,3 +78,17 @@ class TestPymongoBackend:
                     value="value",
                 )
             )
+
+    def test__transform_operator_with_id_conversion(self) -> None:
+        backend = PymongoBackend(alias_id=True, convert_id=True)
+        operator = Operator(Operators.EQ, "id", "6887106233516d43a9c29753")
+        transformed = backend._transform_operator(operator)
+        assert isinstance(transformed["_id"], ObjectId)
+        assert transformed["_id"] == ObjectId("6887106233516d43a9c29753")
+
+    def test__transform_operator_with_id_conversion_in_list(self) -> None:
+        backend = PymongoBackend(alias_id=True, convert_id=True)
+        operator = Operator(Operators.IN, "id", ["6887106233516d43a9c29753"])
+        transformed = backend._transform_operator(operator)
+        assert isinstance(transformed["_id"]["$in"][0], ObjectId)
+        assert transformed["_id"]["$in"][0] == ObjectId("6887106233516d43a9c29753")
