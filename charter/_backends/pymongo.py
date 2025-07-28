@@ -68,14 +68,17 @@ class PymongoBackend(Backend[list[dict[str, Any]]]):
         field = self._get_field_name(op.field)
         if self.convert_id and field == "_id":
             if op.operator == Operators.IN:
-                value: Any = [ObjectId(v) for v in op.value]
-            else:
-                value = ObjectId(op.value)
-            op = Operator(
-                operator=op.operator,
-                field=field,
-                value=value,
-            )
+                op = Operator(
+                    operator=op.operator,
+                    field=field,
+                    value=[ObjectId(v) for v in op.value],
+                )
+            elif isinstance(op.value, str):
+                op = Operator(
+                    operator=op.operator,
+                    field=field,
+                    value=ObjectId(op.value),
+                )
 
         match op.operator:
             case Operators.EQ:
