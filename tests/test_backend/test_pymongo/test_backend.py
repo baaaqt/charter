@@ -1,4 +1,9 @@
+from typing import Any
+
+import pytest
+
 from charter._backends.pymongo import PymongoBackend
+from charter._ops import ContainsData, Operator, Operators
 
 
 class TestPymongoBackend:
@@ -19,3 +24,38 @@ class TestPymongoBackend:
         backend = PymongoBackend(alias_id=False, convert_id=False)
         assert backend._get_field_name("id") == "id"
         assert backend._get_field_name("name") == "name"
+
+    @pytest.mark.parametrize(
+        "operator, expected",
+        [
+            (Operator(Operators.EQ, "name", "value"), {"name": "value"}),
+            (Operator(Operators.IN, "name", ["value"]), {"name": {"$in": ["value"]}}),
+            (Operator(Operators.GT, "age", 30), {"age": {"$gt": 30}}),
+            (Operator(Operators.GTE, "age", 30), {"age": {"$gte": 30}}),
+            (Operator(Operators.LT, "age", 30), {"age": {"$lt": 30}}),
+            (Operator(Operators.LTE, "age", 30), {"age": {"$lte": 30}}),
+            (
+                Operator(
+                    Operators.CONTAINS,
+                    "name",
+                    ContainsData(value="test", ignore_case=False),
+                ),
+                {"name": {"$regex": "test"}},
+            ),
+            (
+                Operator(
+                    Operators.CONTAINS,
+                    "name",
+                    ContainsData(value="test", ignore_case=True),
+                ),
+                {"name": {"$regex": "test", "$options": "i"}},
+            ),
+        ],
+    )
+    def test__transform_operator(
+        self,
+        operator: Operator,
+        expected: dict[str, Any],
+    ) -> None:
+        transformed = self.backend._transform_operator(operator)
+        assert transformed == expected
