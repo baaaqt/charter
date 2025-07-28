@@ -13,7 +13,8 @@ pymongo = ["pymongo>=4.13.2"]
 
 [dependency-groups]
 dev = [{ include-group = "test" }, { include-group = "lint" }]
-test = ["nox>=2025.5.1", "pytest>=8.4.1", "pytest-cov>=6.2.1"]
+test = ["pytest>=8.4.1", "pytest-cov>=6.2.1"]
+nox = ["nox>=2025.5.1"]
 lint = ["mypy>=1.17.0", "ruff>=0.12.5"]
 
 [tool.mypy]

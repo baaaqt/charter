@@ -35,7 +35,6 @@ sqlalchemy = [
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
-    { name = "nox" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
@@ -44,8 +43,10 @@ lint = [
     { name = "mypy" },
     { name = "ruff" },
 ]
-test = [
+nox = [
     { name = "nox" },
+]
+test = [
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -59,7 +60,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.17.0" },
-    { name = "nox", specifier = ">=2025.5.1" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "ruff", specifier = ">=0.12.5" },
@@ -68,8 +68,8 @@ lint = [
     { name = "mypy", specifier = ">=1.17.0" },
     { name = "ruff", specifier = ">=0.12.5" },
 ]
+nox = [{ name = "nox", specifier = ">=2025.5.1" }]
 test = [
-    { name = "nox", specifier = ">=2025.5.1" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
 ]
