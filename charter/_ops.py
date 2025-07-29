@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
@@ -30,6 +29,10 @@ class LogicOperators(StrEnum):
     NOT = "not"
 
 
+ALL_OPERATORS = {op.value for op in Operators}
+ALL_LOGIC_OPERATORS = {op.value for op in LogicOperators}
+
+
 @dataclass(slots=True, frozen=True)
 class ContainsData:
     """Data for contains operation with case sensitivity option."""
@@ -42,23 +45,8 @@ class ContainsData:
             raise ValueError("Contains value cannot be empty string")
 
 
-class Operation(ABC):
-    """Base class for all query operations."""
-
-    @property
-    @abstractmethod
-    def operation_type(self) -> OperationType:
-        """Get the type of operation for type discrimination."""
-        ...
-
-    @abstractmethod
-    def __post_init__(self) -> None:
-        """Validate operation parameters."""
-        ...
-
-
 @dataclass(slots=True, frozen=True)
-class Operator(Operation):
+class Operator:
     """Basic field operation (eq, gt, contains, etc.)."""
 
     operator: Operators
@@ -85,11 +73,11 @@ class Operator(Operation):
 
 
 @dataclass(slots=True, frozen=True)
-class LogicOperator(Operation):
+class LogicOperator:
     """Logic operation combining multiple operations (and, or, not)."""
 
     operator: LogicOperators
-    operations: Sequence[Operation]
+    operations: Sequence["Operation"]
 
     @property
     def operation_type(self) -> Literal[OperationType.LOGIC]:
@@ -98,3 +86,6 @@ class LogicOperator(Operation):
     def __post_init__(self) -> None:
         if len(self.operations) == 0:
             raise ValueError("Logic operator requires at least one operation")
+
+
+type Operation = Operator | LogicOperator
