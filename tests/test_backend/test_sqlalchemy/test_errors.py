@@ -55,17 +55,14 @@ class TestSQLAlchemyBackendErrors:
             )
 
     def test__transform_operator_invalid_operator(self) -> None:
+        mock = Mock(spec=Operator)
+        mock.operator = "invalid"
+        mock.field = "name"
         with pytest.raises(
             UnsupportedOperationError,
             match="Unsupported operator: invalid",
         ):
-            self.backend._transform_operator(
-                Operator(
-                    operator="invalid",  # type: ignore[arg-type]
-                    field="name",
-                    value="test",
-                )
-            )
+            self.backend._transform_operator(mock)
 
     def test__get_column_with_non_existing_column(self) -> None:
         with pytest.raises(
@@ -76,7 +73,7 @@ class TestSQLAlchemyBackendErrors:
             self.backend.transform(
                 [
                     Operator(
-                        operator="eeq",  # type: ignore[arg-type]
+                        operator="eq",  # type: ignore[arg-type]
                         field="invalid_field",
                         value="test",
                     ),
