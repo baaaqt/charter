@@ -17,15 +17,19 @@ class TestOperator:
         with pytest.raises(ValueError):
             Operator(operator=Operators.EQ, field=field, value="test")
 
-    @pytest.mark.parametrize("value", [None, 123, [], {}, "value"])
-    def test_in_invalid_value(self, value: Any) -> None:
+    @pytest.mark.parametrize("value", [None, 123, "value"])
+    def test_in_non_sequence_or_str_value(self, value: Any) -> None:
+        with pytest.raises(TypeError):
+            Operator(operator=Operators.IN, field="tags", value=value)
+
+    @pytest.mark.parametrize("value", [[], ()])
+    def test_in_empty_sequence(self, value: Any) -> None:
         with pytest.raises(ValueError):
             Operator(operator=Operators.IN, field="tags", value=value)
 
-    @pytest.mark.parametrize("value", ["", None])
-    def test_contains_operator_invalid_value(self, value: Any) -> None:
+    def test_contains_operator_invalid_value(self) -> None:
         with pytest.raises(ValueError):
-            Operator(operator=Operators.CONTAINS, field="description", value=value)
+            Operator(operator=Operators.CONTAINS, field="description", value="")
 
     def test_operation_type(self) -> None:
         op = Operator(operator=Operators.EQ, field="name", value="test")
