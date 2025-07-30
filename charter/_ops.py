@@ -70,8 +70,6 @@ class Operator(BaseModel):
 
 
 class LogicOperator(BaseModel):
-    """Logic operation combining multiple operations (and, or, not)."""
-
     operator: LogicOperators
     operations: Sequence["Operation"] = Field(min_length=1)
 
