@@ -5,7 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Bakyt Niiazaliev", email = "bakyt.worker@gmail.com" }]
-dependencies = []
+dependencies = [
+    "pydantic>=2.11.7",
+]
 
 [project.optional-dependencies]
 sqlalchemy = ["sqlalchemy>=2.0.41"]
