@@ -50,11 +50,16 @@ class Operator(BaseModel):
 
     @model_validator(mode="after")
     def _validate_value(self) -> Self:
-        if self.operator == Operators.IN and not isinstance(self.value, Sequence):
-            raise ValueError(
-                f"Operator '{self.operator.value}'"
-                f" requires an array value, got {self.value}"
-            )
+        if self.operator == Operators.IN:
+            if isinstance(self.value, str) or not isinstance(self.value, Sequence):
+                raise ValueError(
+                    f"Operator '{self.operator.value}' requires a sequence value, "
+                    f"got {self.value}"
+                )
+            if len(self.value) == 0:
+                raise ValueError(
+                    f"Operator '{self.operator.value}' requires a non-empty sequence"
+                )
 
         if self.operator == Operators.CONTAINS and not isinstance(
             self.value, ContainsData
@@ -66,6 +71,7 @@ class Operator(BaseModel):
                 )
             else:
                 self.value = ContainsData(value=self.value)
+
         return self
 
 
