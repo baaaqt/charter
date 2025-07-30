@@ -1,7 +1,8 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, Self
+
+from pydantic import BaseModel, Field, model_validator
 
 
 class OperationType(Enum):
@@ -33,59 +34,50 @@ ALL_OPERATORS = {op.value for op in Operators}
 ALL_LOGIC_OPERATORS = {op.value for op in LogicOperators}
 
 
-@dataclass(slots=True, frozen=True)
-class ContainsData:
-    """Data for contains operation with case sensitivity option."""
-
-    value: str
+class ContainsData(BaseModel):
+    value: str = Field(min_length=1)
     ignore_case: bool = False
 
-    def __post_init__(self) -> None:
-        if not self.value:
-            raise ValueError("Contains value cannot be empty string")
 
-
-@dataclass(slots=True, frozen=True)
-class Operator:
-    """Basic field operation (eq, gt, contains, etc.)."""
-
+class Operator(BaseModel):
     operator: Operators
-    field: str
+    field: str = Field(min_length=1)
     value: Any
 
-    @property
-    def operation_type(self) -> Literal[OperationType.OPERATOR]:
-        return OperationType.OPERATOR
+    operation_type: Literal[OperationType.OPERATOR] = Field(
+        OperationType.OPERATOR, init=False
+    )
 
-    def __post_init__(self) -> None:
-        if not self.field:
-            raise ValueError("Field name cannot be empty")
+    @model_validator(mode="after")
+    def _validate_value(self) -> Self:
+        if self.operator == Operators.IN and not isinstance(self.value, Sequence):
+            raise ValueError(
+                f"Operator '{self.operator.value}'"
+                f" requires an array value, got {self.value}"
+            )
 
-        if self.operator == Operators.IN:
-            if not isinstance(self.value, Sequence) or isinstance(self.value, str):
-                raise ValueError("IN operator requires a sequence value")
-            if len(self.value) == 0:
-                raise ValueError("IN operator cannot have empty sequence")
+        if self.operator == Operators.CONTAINS and not isinstance(
+            self.value, ContainsData
+        ):
+            if not isinstance(self.value, str):
+                raise ValueError(
+                    f"Operator '{self.operator.value}' requires a"
+                    f" ContainsData or string value, got {self.value}"
+                )
+            else:
+                self.value = ContainsData(value=self.value)
+        return self
 
-        if self.operator == Operators.CONTAINS:
-            if not isinstance(self.value, ContainsData):
-                raise ValueError("CONTAINS operator requires ContainsData value")
 
-
-@dataclass(slots=True, frozen=True)
-class LogicOperator:
+class LogicOperator(BaseModel):
     """Logic operation combining multiple operations (and, or, not)."""
 
     operator: LogicOperators
-    operations: Sequence["Operation"]
+    operations: Sequence["Operation"] = Field(min_length=1)
 
-    @property
-    def operation_type(self) -> Literal[OperationType.LOGIC]:
-        return OperationType.LOGIC
-
-    def __post_init__(self) -> None:
-        if len(self.operations) == 0:
-            raise ValueError("Logic operator requires at least one operation")
+    operation_type: Literal[OperationType.LOGIC] = Field(
+        OperationType.LOGIC, init=False
+    )
 
 
 type Operation = Operator | LogicOperator
