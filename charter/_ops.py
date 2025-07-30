@@ -52,7 +52,7 @@ class Operator(BaseModel):
     def _validate_value(self) -> Self:
         if self.operator == Operators.IN:
             if isinstance(self.value, str) or not isinstance(self.value, Sequence):
-                raise ValueError(
+                raise TypeError(
                     f"Operator '{self.operator.value}' requires a sequence value, "
                     f"got {self.value}"
                 )
@@ -65,7 +65,7 @@ class Operator(BaseModel):
             self.value, ContainsData
         ):
             if not isinstance(self.value, str):
-                raise ValueError(
+                raise TypeError(
                     f"Operator '{self.operator.value}' requires a"
                     f" ContainsData or string value, got {self.value}"
                 )
