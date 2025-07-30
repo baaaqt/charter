@@ -38,31 +38,52 @@ class TestPymongoBackend:
     @pytest.mark.parametrize(
         "operator, expected",
         [
-            (Operator(Operators.EQ, "name", "value"), {"name": "value"}),
-            (Operator(Operators.NEQ, "name", "value"), {"name": {"$ne": "value"}}),
-            (Operator(Operators.IN, "name", ["value"]), {"name": {"$in": ["value"]}}),
-            (Operator(Operators.GT, "age", 30), {"age": {"$gt": 30}}),
-            (Operator(Operators.GTE, "age", 30), {"age": {"$gte": 30}}),
-            (Operator(Operators.LT, "age", 30), {"age": {"$lt": 30}}),
-            (Operator(Operators.LTE, "age", 30), {"age": {"$lte": 30}}),
+            (
+                Operator(operator=Operators.EQ, field="name", value="value"),
+                {"name": "value"},
+            ),
+            (
+                Operator(operator=Operators.NEQ, field="name", value="value"),
+                {"name": {"$ne": "value"}},
+            ),
+            (
+                Operator(operator=Operators.IN, field="name", value=["value"]),
+                {"name": {"$in": ["value"]}},
+            ),
+            (
+                Operator(operator=Operators.GT, field="age", value=30),
+                {"age": {"$gt": 30}},
+            ),
+            (
+                Operator(operator=Operators.GTE, field="age", value=30),
+                {"age": {"$gte": 30}},
+            ),
+            (
+                Operator(operator=Operators.LT, field="age", value=30),
+                {"age": {"$lt": 30}},
+            ),
+            (
+                Operator(operator=Operators.LTE, field="age", value=30),
+                {"age": {"$lte": 30}},
+            ),
             (
                 Operator(
-                    Operators.CONTAINS,
-                    "name",
-                    ContainsData(value="test", ignore_case=False),
+                    operator=Operators.CONTAINS,
+                    field="name",
+                    value=ContainsData(value="test", ignore_case=False),
                 ),
                 {"name": {"$regex": "test"}},
             ),
             (
                 Operator(
-                    Operators.CONTAINS,
-                    "name",
-                    ContainsData(value="test", ignore_case=True),
+                    operator=Operators.CONTAINS,
+                    field="name",
+                    value=ContainsData(value="test", ignore_case=True),
                 ),
                 {"name": {"$regex": "test", "$options": "i"}},
             ),
             (
-                Operator(Operators.REGEX, "name", r"^test.*"),
+                Operator(operator=Operators.REGEX, field="name", value=r"^test.*"),
                 {"name": {"$regex": r"^test.*"}},
             ),
         ],
@@ -76,28 +97,34 @@ class TestPymongoBackend:
         assert transformed == expected
 
     def test__transform_operator_invalid_operator(self) -> None:
+        mock = Mock(spec=Operator)
+        mock.operator = "unsupported_operator"
+        mock.field = "name"
+
         with pytest.raises(
             UnsupportedOperationError,
             match="Unsupported operator: unsupported_operator",
         ):
-            self.backend._transform_operator(
-                Operator(
-                    operator="unsupported_operator",  # type: ignore[arg-type]
-                    field="name",
-                    value="value",
-                )
-            )
+            self.backend._transform_operator(mock)
 
     def test__transform_operator_with_id_conversion(self) -> None:
         backend = PymongoBackend(alias_id=True, convert_id=True)
-        operator = Operator(Operators.EQ, "id", "6887106233516d43a9c29753")
+        operator = Operator(
+            operator=Operators.EQ,
+            field="id",
+            value="6887106233516d43a9c29753",
+        )
         transformed = backend._transform_operator(operator)
         assert isinstance(transformed["_id"], ObjectId)
         assert transformed["_id"] == ObjectId("6887106233516d43a9c29753")
 
     def test__transform_operator_with_id_conversion_in_list(self) -> None:
         backend = PymongoBackend(alias_id=True, convert_id=True)
-        operator = Operator(Operators.IN, "id", ["6887106233516d43a9c29753"])
+        operator = Operator(
+            operator=Operators.IN,
+            field="id",
+            value=["6887106233516d43a9c29753"],
+        )
         transformed = backend._transform_operator(operator)
         assert isinstance(transformed["_id"]["$in"][0], ObjectId)
         assert transformed["_id"]["$in"][0] == ObjectId("6887106233516d43a9c29753")
@@ -109,8 +136,8 @@ class TestPymongoBackend:
                 LogicOperator(
                     operator=LogicOperators.AND,
                     operations=[
-                        Operator(Operators.EQ, "name", "test"),
-                        Operator(Operators.GT, "age", 20),
+                        Operator(operator=Operators.EQ, field="name", value="test"),
+                        Operator(operator=Operators.GT, field="age", value=20),
                     ],
                 ),
                 {"$and": [{"name": "test"}, {"age": {"$gt": 20}}]},
@@ -119,8 +146,8 @@ class TestPymongoBackend:
                 LogicOperator(
                     operator=LogicOperators.OR,
                     operations=[
-                        Operator(Operators.EQ, "name", "test"),
-                        Operator(Operators.LT, "age", 30),
+                        Operator(operator=Operators.EQ, field="name", value="test"),
+                        Operator(operator=Operators.LT, field="age", value=30),
                     ],
                 ),
                 {"$or": [{"name": "test"}, {"age": {"$lt": 30}}]},
@@ -128,7 +155,13 @@ class TestPymongoBackend:
             (
                 LogicOperator(
                     operator=LogicOperators.NOT,
-                    operations=[Operator(Operators.EQ, "name", "test")],
+                    operations=[
+                        Operator(
+                            operator=Operators.EQ,
+                            field="name",
+                            value="test",
+                        )
+                    ],
                 ),
                 {"$not": [{"name": "test"}]},
             ),
@@ -143,18 +176,16 @@ class TestPymongoBackend:
         assert transformed == expected
 
     def test__transform_logic_operator_invalid_operator(self) -> None:
+        mock = Mock(spec=LogicOperator)
+        mock.operations = [
+            Operator(operator=Operators.EQ, field="name", value="test"),
+        ]
+        mock.operator = "unsupported_operator"
         with pytest.raises(
             UnsupportedOperationError,
             match="Unsupported logic operator: unsupported_operator",
         ):
-            self.backend._transform_logic_operator(
-                LogicOperator(
-                    operator="unsupported_operator",  # type: ignore[arg-type]
-                    operations=[
-                        Operator(Operators.EQ, "name", "test"),
-                    ],
-                )
-            )
+            self.backend._transform_logic_operator(mock)
 
     def test_transform_unsupported_operation_type(self) -> None:
         mock = Mock(spec=Operator)
@@ -171,12 +202,12 @@ class TestPymongoBackend:
         [
             (
                 [
-                    Operator(Operators.EQ, "name", "test"),
+                    Operator(operator=Operators.EQ, field="name", value="test"),
                     LogicOperator(
                         operator=LogicOperators.AND,
                         operations=[
-                            Operator(Operators.GT, "age", 20),
-                            Operator(Operators.LT, "age", 30),
+                            Operator(operator=Operators.GT, field="age", value=20),
+                            Operator(operator=Operators.LT, field="age", value=30),
                         ],
                     ),
                 ],
@@ -190,8 +221,12 @@ class TestPymongoBackend:
                     LogicOperator(
                         operator=LogicOperators.OR,
                         operations=[
-                            Operator(Operators.EQ, "name", "test"),
-                            Operator(Operators.IN, "tags", ["tag1", "tag2"]),
+                            Operator(operator=Operators.EQ, field="name", value="test"),
+                            Operator(
+                                operator=Operators.IN,
+                                field="tags",
+                                value=["tag1", "tag2"],
+                            ),
                         ],
                     )
                 ],
@@ -201,29 +236,51 @@ class TestPymongoBackend:
                 [
                     LogicOperator(
                         operator=LogicOperators.NOT,
-                        operations=[Operator(Operators.EQ, "name", "test")],
+                        operations=[
+                            Operator(operator=Operators.EQ, field="name", value="test")
+                        ],
                     ),
                     LogicOperator(
                         operator=LogicOperators.AND,
                         operations=[
-                            Operator(Operators.GT, "age", 20),
-                            Operator(Operators.LT, "age", 30),
+                            Operator(operator=Operators.GT, field="age", value=20),
+                            Operator(operator=Operators.LT, field="age", value=30),
                         ],
                     ),
                     LogicOperator(
                         operator=LogicOperators.OR,
                         operations=[
-                            Operator(Operators.EQ, "status", "active"),
-                            Operator(Operators.IN, "tags", ["tag1", "tag2"]),
+                            Operator(
+                                operator=Operators.EQ, field="status", value="active"
+                            ),
+                            Operator(
+                                operator=Operators.IN,
+                                field="tags",
+                                value=["tag1", "tag2"],
+                            ),
                             LogicOperator(
                                 operator=LogicOperators.NOT,
-                                operations=[Operator(Operators.EQ, "name", "test")],
+                                operations=[
+                                    Operator(
+                                        operator=Operators.EQ,
+                                        field="name",
+                                        value="test",
+                                    )
+                                ],
                             ),
                             LogicOperator(
                                 operator=LogicOperators.AND,
                                 operations=[
-                                    Operator(Operators.GT, "age", 20),
-                                    Operator(Operators.LT, "age", 30),
+                                    Operator(
+                                        operator=Operators.GT,
+                                        field="age",
+                                        value=20,
+                                    ),
+                                    Operator(
+                                        operator=Operators.LT,
+                                        field="age",
+                                        value=30,
+                                    ),
                                 ],
                             ),
                         ],
