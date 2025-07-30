@@ -5,8 +5,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from charter._backends.sqlalchemy import SQLAlchemyBackend
 from charter._exc import UnsupportedOperationError
-from charter._ops import LogicOperator, Operator
-from charter._predicate import Predicate
+from charter._ops import Operator
 
 
 class TestSQLAlchemyBackendErrors:
@@ -43,16 +42,13 @@ class TestSQLAlchemyBackendErrors:
             self.backend.transform([mock])
 
     def test__transform_logic_operator_invalid_logic_operator(self) -> None:
+        mock = Mock(spec=Operator)
+        mock.operator = "invalid"
         with pytest.raises(
             UnsupportedOperationError,
             match="Unsupported logic operator: invalid",
         ):
-            self.backend._transform_logic_operator(
-                LogicOperator(
-                    operator="invalid",  # type: ignore[arg-type]
-                    operations=[Predicate().eq("name", "test")],
-                )
-            )
+            self.backend._transform_logic_operator(mock)
 
     def test__transform_operator_invalid_operator(self) -> None:
         mock = Mock(spec=Operator)
