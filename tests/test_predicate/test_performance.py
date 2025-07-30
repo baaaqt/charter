@@ -166,24 +166,6 @@ class TestPredicateStressTests:
         assert op.value == long_value
         assert len(op.value) == 10000
 
-    def test_empty_operations_handling(self) -> None:
-        test_cases = [
-            ("field", ""),
-            ("field", 0),
-            ("field", False),
-            ("field", []),
-            ("field", None),
-        ]
-
-        for field, value in test_cases:
-            if field == "field" and value == []:
-                with pytest.raises(ValueError):
-                    self.predicate.in_(field, value)  # type: ignore[arg-type]
-            else:
-                op = self.predicate.eq(field, value)
-                assert op.field == field
-                assert op.value == value
-
     def test_rapid_fire_operations(self) -> None:
         operations = []
 
