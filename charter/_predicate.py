@@ -25,7 +25,7 @@ class Predicate:
         return Operator(operator=Operators.EQ, field=field, value=value)
 
     def neq(self, field: str, value: Any) -> Operator:
-        return Operator(Operators.NEQ, field, value)
+        return Operator(operator=Operators.NEQ, field=field, value=value)
 
     def in_(self, field: str, values: Sequence[Any]) -> Operator:
         return Operator(operator=Operators.IN, field=field, value=values)
