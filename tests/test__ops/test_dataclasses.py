@@ -27,9 +27,14 @@ class TestOperator:
         with pytest.raises(ValueError):
             Operator(operator=Operators.IN, field="tags", value=value)
 
-    def test_contains_operator_invalid_value(self) -> None:
+    def test_contains_operator_empty_value(self) -> None:
         with pytest.raises(ValueError):
             Operator(operator=Operators.CONTAINS, field="description", value="")
+
+    @pytest.mark.parametrize("value", [123, 45.67, True, None])
+    def test_contains_operator_invalid_value_type(self, value) -> None:
+        with pytest.raises(TypeError):
+            Operator(operator=Operators.CONTAINS, field="description", value=value)
 
     def test_operation_type(self) -> None:
         op = Operator(operator=Operators.EQ, field="name", value="test")
